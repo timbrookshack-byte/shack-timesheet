@@ -51,6 +51,7 @@ export function kioskPage(managerName: string): Response {
 .wordmark{font-weight:700;font-size:15px;letter-spacing:.22em;text-transform:uppercase}
 .wordmark i{font-style:normal;color:var(--brand);margin:0 .5em}
 .wordmark span{color:#a1a1aa;font-weight:500}
+.mgr{display:inline-flex;align-items:center;gap:7px;color:#a1a1aa;text-decoration:none;font-size:13px;font-weight:500;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);transition:color .15s,border-color .15s}.mgr:hover{color:#fff;border-color:rgba(255,255,255,.4)}
 .hero-main{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-top:40px;flex-wrap:wrap}
 .hero h1{margin:0;font-size:46px;font-weight:700;line-height:1.08;letter-spacing:-.02em}
 .hero h1 em{font-style:normal;color:var(--brand)}
@@ -100,7 +101,7 @@ main{max-width:1240px;margin:-48px auto 0;padding:0 40px 60px;position:relative}
 
   const body = `
 <section class="hero"><div class="hero-in">
-  <div class="topline"><div class="wordmark">The Furniture Shack<i>/</i><span>Site sign-in</span></div></div>
+  <div class="topline"><div class="wordmark">The Furniture Shack<i>/</i><span>Site sign-in</span></div><a class="mgr" href="/admin"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Manager</a></div>
   <div class="hero-main">
     <div><h1 id="hello">Welcome.</h1><p class="sub">Tap your name to sign in or out.</p>
       <div class="stats"><span class="stat"><span class="dot on"></span><span id="sOn">0 on site</span></span><span class="stat"><span class="dot done"></span><span id="sDone">0 finished today</span></span></div></div>

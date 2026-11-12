@@ -21,7 +21,8 @@ table.list{border-collapse:collapse;width:100%}table.list th,table.list td{paddi
 </style>`;
 
 function shell(title: string, content: string, flash?: { msg: string; bad?: boolean }): Response {
-  return page(`${title} — Timesheets`, `<nav><b>The Furniture Shack<i>/</i>Timesheets</b><a href="/admin">Weekly hours</a><a href="/admin/workers">Workers</a><a href="/" target="_blank">Kiosk</a><form method="post" action="/admin/logout" style="margin:0"><button>Log out</button></form></nav>
+  return page(`${title} — Timesheets`, `<nav><b>The Furniture Shack<i>/</i>Timesheets</b><a href="/admin">Weekly hours</a><a href="/admin/workers">Workers</a><form method="post" action="/admin/logout" style="margin:0"><input type="hidden" name="to" value="kiosk"><button>← Back to kiosk</button></form><form method="post" action="/admin/logout" style="margin:0" id="logoutForm"><button>Log out</button></form></nav>
+<script>(function(){var t;function arm(){clearTimeout(t);t=setTimeout(function(){var f=document.getElementById("logoutForm");var i=document.createElement("input");i.type="hidden";i.name="to";i.value="kiosk";f.appendChild(i);f.submit();},5*60*1000);}["click","keydown","input","scroll","touchstart"].forEach(function(e){document.addEventListener(e,arm,{passive:true});});arm();})();</script>
 <div class="wrap">${flash ? `<div class="flash${flash.bad ? " bad" : ""}">${esc(flash.msg)}</div>` : ""}${content}</div>`, ADMIN_CSS);
 }
 
@@ -31,7 +32,7 @@ function loginPage(managerName: string, error = ""): Response {
   return page("Manager login — Timesheets", `<div style="max-width:420px;margin:12vh auto;padding:0 16px"><div style="background:#fff;border-radius:28px;padding:36px;box-shadow:var(--shadow)"><div class="eyebrow">The Furniture Shack</div>
 <h1 style="margin:0 0 6px;font-size:24px">Manager area</h1><p style="color:#666;margin:0">Contractor hours, edits and the weekly summary.</p>
 <form method="post" action="/admin/login"><label for="code">Manager code (${esc(managerName)})</label><input id="code" name="code" type="password" inputmode="numeric" autocomplete="off" required autofocus>
-<div class="err">${esc(error)}</div><button class="btn" style="width:100%;margin-top:8px">Log in</button></form></div></div>`);
+<div class="err">${esc(error)}</div><button class="btn" style="width:100%;margin-top:8px">Log in</button></form><p style="margin:20px 0 0;text-align:center;font-size:14px"><a href="/" style="color:var(--muted)">← Back to kiosk</a></p></div></div>`);
 }
 
 export async function handleAdmin(req: Request, env: Env, url: URL): Promise<Response> {
@@ -44,7 +45,10 @@ export async function handleAdmin(req: Request, env: Env, url: URL): Promise<Res
     if (!res.ok) return loginPage(env.MANAGER_NAME, res.error);
     return redirect("/admin", await makeCookie(env, "admin", ADMIN_MAX_AGE));
   }
-  if (p === "/admin/logout" && post) return redirect("/admin", clearCookie("admin"));
+  if (p === "/admin/logout" && post) {
+    const to = (await req.formData()).get("to") === "kiosk" ? "/" : "/admin";
+    return redirect(to, clearCookie("admin"));
+  }
 
   if (!(await hasCookie(req, env, "admin"))) {
     return req.method === "GET" ? loginPage(env.MANAGER_NAME) : redirect("/admin");
