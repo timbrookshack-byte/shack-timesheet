@@ -1,84 +1,116 @@
 import { esc } from "./summary";
 
 export const BASE_CSS = `
-:root{--ink:#111;--muted:#666;--line:#e5e5e5;--bg:#f6f6f4;--card:#fff;--brand:#c026d3;--brand-dark:#a21caf;--ok:#15803d;--okbg:#dcfce7;--warn:#b91c1c}
+:root{--ink:#171717;--ink-2:#3f3f46;--muted:#71717a;--line:#e4e4e7;--bg:#fafafa;--card:#fff;--brand:oklch(0.54 0.23 355);--brand-soft:oklch(0.96 0.03 355);--brand-ink:oklch(0.45 0.2 355);--ok:#15803d;--okbg:#dcfce7;--warn:#b91c1c;--radius:18px;--shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06)}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-button,input,select{font:inherit}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;padding:14px 22px;font-weight:600;cursor:pointer;background:var(--ink);color:#fff;text-decoration:none;font-size:16px}
-.btn:hover{opacity:.9}.btn:disabled{opacity:.5;cursor:default}
-.btn.brand{background:var(--brand)}.btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--line)}
-.btn.big{font-size:22px;padding:20px 30px;border-radius:16px}
-.btn.sm{font-size:14px;padding:8px 14px;border-radius:10px}
-.link{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:15px;padding:6px}
-input[type=text],input[type=tel],input[type=password],input[type=time],input[type=date],input[type=number],input[type=search],select{width:100%;padding:12px 14px;border:2px solid var(--line);border-radius:10px;background:#fff;font-size:17px}
-input:focus,select:focus{outline:none;border-color:var(--ink)}
-label{display:block;font-weight:600;margin:14px 0 6px}
-.err{color:var(--warn);font-weight:600;margin-top:12px;min-height:1.2em}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:999px;padding:13px 24px;font-weight:600;cursor:pointer;background:var(--ink);color:#fff;text-decoration:none;font-size:15px;letter-spacing:.1px;transition:transform .12s,box-shadow .15s,background .15s,opacity .15s}
+.btn:hover{box-shadow:0 6px 18px rgba(0,0,0,.14)}.btn:active{transform:scale(.97)}.btn:disabled{opacity:.4;cursor:default;box-shadow:none;transform:none}
+.btn.brand{background:var(--brand)}.btn.brand:hover{box-shadow:0 8px 22px oklch(0.54 0.23 355 / .35)}
+.btn.ghost{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}.btn.ghost:hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.btn.big{font-size:20px;padding:20px 38px}
+.btn.sm{font-size:13px;padding:8px 16px}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:14px;padding:6px}.link:hover{color:var(--ink)}.link:disabled{opacity:.4;cursor:default}
+input[type=text],input[type=tel],input[type=password],input[type=time],input[type=date],input[type=number],input[type=search],select{width:100%;padding:13px 16px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:16px;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 4px rgba(23,23,23,.06)}
+label{display:block;font-weight:600;font-size:14px;margin:16px 0 6px}
+.err{color:var(--warn);font-weight:500;font-size:14px;margin-top:12px;min-height:1.2em}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--brand)}
 `;
 
 export function page(title: string, body: string, extraHead = ""): Response {
   const html = `<!doctype html><html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
-<title>${esc(title)}</title><style>${BASE_CSS}</style>${extraHead}</head><body>${body}</body></html>`;
+<title>${esc(title)}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>${BASE_CSS}</style>${extraHead}</head><body>${body}</body></html>`;
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
 }
 
 export function devicePage(error = ""): Response {
   return page("Set up sign-in kiosk", `
-<div style="max-width:440px;margin:10vh auto;padding:0 16px">
-  <div style="background:#fff;border-radius:18px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
-    <h1 style="margin:0 0 8px;font-size:24px">Set up this laptop as the sign-in kiosk</h1>
-    <p style="color:#666;margin:0 0 8px">Only the manager can do this. Once set up, this Chrome browser stays signed in as the kiosk — workers can't sign in from their phones or anywhere else.</p>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(900px 400px at 80% -10%,oklch(0.54 0.23 355 / .35),transparent 60%),#171717">
+  <div style="background:#fff;border-radius:28px;padding:36px;width:min(460px,100%);box-shadow:0 30px 80px rgba(0,0,0,.35)">
+    <div class="eyebrow">The Furniture Shack</div>
+    <h1 style="margin:8px 0 8px;font-size:26px;letter-spacing:-.02em">Set up this laptop as the sign-in kiosk</h1>
+    <p style="color:var(--muted);margin:0 0 8px;font-size:15px">Only the manager can do this. Once set up, this Chrome browser stays signed in as the kiosk — workers can't sign in from their phones or anywhere else.</p>
     <form method="post" action="/device">
       <label for="code">Manager code</label>
       <input id="code" name="code" type="password" inputmode="numeric" autocomplete="off" required autofocus>
       <div class="err">${esc(error)}</div>
-      <button class="btn" style="width:100%;margin-top:8px">Set up kiosk</button>
+      <button class="btn brand" style="width:100%;margin-top:6px;padding:15px">Set up kiosk</button>
     </form>
-    <p style="margin:18px 0 0;font-size:14px"><a href="/admin" style="color:#666">Manager area →</a></p>
+    <p style="margin:20px 0 0;font-size:14px;text-align:center"><a href="/admin" style="color:var(--muted)">Manager area →</a></p>
   </div>
 </div>`);
 }
 
 export function kioskPage(managerName: string): Response {
   const head = `<style>
-header{background:#111;color:#fff;padding:16px 28px;display:flex;align-items:center;justify-content:space-between}
-header .brand{font-weight:800;font-size:20px;letter-spacing:.2px}header .brand span{color:#e879f9}
-header .clock{text-align:right}header .clock b{font-size:28px;display:block;font-variant-numeric:tabular-nums}
-main{max-width:1200px;margin:0 auto;padding:24px 28px 60px}
-.top{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
-.top h1{margin:0;font-size:30px;flex:1 1 360px}
-.search{flex:0 1 340px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
-.card{background:#fff;border:2px solid transparent;border-radius:16px;padding:18px;text-align:left;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:transform .08s}
-.card:hover{border-color:#111}.card:active{transform:scale(.98)}
-.card .nm{font-size:20px;font-weight:700}.card .co{color:#666;font-size:14px;margin-top:2px}
-.pill{display:inline-block;margin-top:10px;font-size:13px;font-weight:600;padding:4px 10px;border-radius:99px;background:#f1f1f1;color:#555}
-.pill.on{background:var(--okbg);color:var(--ok)}.pill.done{background:#ececec;color:#777}
-.empty{color:#666;padding:40px 0;text-align:center;font-size:18px}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
-.overlay.open{display:flex}
-.panel{background:#fff;border-radius:22px;padding:34px;width:min(560px,100%);max-height:94vh;overflow:auto;text-align:center}
-.panel h2{font-size:30px;margin:0 0 8px}.panel p{font-size:18px;color:#444;margin:8px 0}
-.panel .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.hero{background:radial-gradient(1200px 400px at 85% -10%,oklch(0.54 0.23 355 / .35),transparent 60%),#171717;color:#fff;padding:28px 40px 84px}
+.hero-in{max-width:1240px;margin:0 auto}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.wordmark{font-weight:700;font-size:15px;letter-spacing:.22em;text-transform:uppercase}
+.wordmark i{font-style:normal;color:var(--brand);margin:0 .5em}
+.wordmark span{color:#a1a1aa;font-weight:500}
+.hero-main{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-top:40px;flex-wrap:wrap}
+.hero h1{margin:0;font-size:46px;font-weight:700;line-height:1.08;letter-spacing:-.02em}
+.hero h1 em{font-style:normal;color:var(--brand)}
+.hero .sub{margin:10px 0 0;color:#a1a1aa;font-size:18px}
+.clock{text-align:right}.clock b{display:block;font-size:64px;font-weight:600;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.clock span{color:#a1a1aa;font-size:15px}
+.stats{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+.stat{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:6px 14px;font-size:13px;color:#e4e4e7}
+.dot{width:8px;height:8px;border-radius:50%;background:#71717a;flex:none}.dot.on{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.2)}.dot.done{background:#a1a1aa}
+main{max-width:1240px;margin:-48px auto 0;padding:0 40px 60px;position:relative}
+.toolbar{background:#fff;border-radius:22px;box-shadow:var(--shadow);padding:12px;display:flex;gap:12px;align-items:center;margin-bottom:28px}
+.searchwrap{flex:1;position:relative}
+.searchwrap svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.searchwrap input{border:0;background:var(--bg);padding:16px 16px 16px 48px;font-size:17px;border-radius:14px}
+.searchwrap input:focus{box-shadow:0 0 0 2px var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.card{background:#fff;border:0;border-radius:var(--radius);padding:18px;text-align:left;cursor:pointer;box-shadow:var(--shadow);display:flex;gap:14px;align-items:center;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
+.card:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(0,0,0,.04),0 14px 32px rgba(0,0,0,.1)}.card:active{transform:scale(.98)}
+.card.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--brand)}
+.av{width:52px;height:52px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:17px;background:#f4f4f5;color:var(--ink-2)}
+.card.on .av{background:var(--brand-soft);color:var(--brand-ink)}.card.done .av{background:#171717;color:#fff}
+.av.xl{width:84px;height:84px;font-size:28px;margin:0 auto 16px;background:var(--brand-soft);color:var(--brand-ink)}
+.card .nm{font-size:18px;font-weight:600;line-height:1.25}.card .co{color:var(--muted);font-size:13px;margin-top:1px}
+.st{display:flex;align-items:center;gap:7px;margin-top:8px;font-size:13px;font-weight:500;color:var(--muted)}
+.card.on .st{color:var(--ok)}
+.empty{color:var(--muted);padding:56px 0;text-align:center;font-size:17px}
+.overlay{position:fixed;inset:0;background:rgba(10,10,10,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.overlay.open{display:flex;animation:fade .18s ease-out}
+.panel{background:#fff;border-radius:28px;padding:40px;width:min(580px,100%);max-height:94vh;overflow:auto;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.3);animation:pop .22s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes fade{from{opacity:0}}@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.97)}}
+.panel h2{font-size:30px;font-weight:700;letter-spacing:-.02em;margin:0 0 6px}.panel p{font-size:17px;color:var(--ink-2);margin:8px 0}
+.panel .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px}
 .panel form{text-align:left}
+.q{margin-top:26px!important;font-weight:600;color:var(--ink)!important}
 .choice{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
-.choice .btn{min-width:90px}.choice .btn.sel{background:var(--brand)}
-.tick{width:84px;height:84px;border-radius:50%;background:var(--okbg);color:var(--ok);display:flex;align-items:center;justify-content:center;font-size:48px;margin:0 auto 14px}
-.note{background:#fff7ed;color:#9a3412;border-radius:12px;padding:12px;font-size:15px!important;margin-top:16px!important}
-.summary{background:#f6f6f4;border-radius:12px;padding:12px;font-size:16px!important}
-.check{display:flex;gap:12px;align-items:flex-start;font-weight:500;margin-top:18px;background:#f6f6f4;border-radius:12px;padding:14px;cursor:pointer}
-.check input{width:24px;height:24px;flex:none;margin:0}
-.big-time{font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;margin:6px 0}
+.choice .btn{min-width:92px}.choice .btn.sel{background:var(--brand);color:#fff;box-shadow:none}
+.tick{width:96px;height:96px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 0 0 10px var(--brand-soft);animation:pop .35s cubic-bezier(.2,.9,.3,1.4)}
+.tick svg{stroke-dasharray:30;stroke-dashoffset:30;animation:draw .4s .15s ease-out forwards}@keyframes draw{to{stroke-dashoffset:0}}
+.msg{font-size:20px!important;color:var(--ink)!important;line-height:1.45}
+.note{background:#fff7ed;color:#9a3412!important;border-radius:14px;padding:12px 14px;font-size:14px!important;margin-top:16px!important}
+.summary{background:var(--bg);border-radius:14px;padding:12px 14px;font-size:15px!important}
+.check{display:flex;gap:12px;align-items:flex-start;font-weight:500;font-size:15px;margin-top:18px;background:var(--brand-soft);border-radius:14px;padding:16px;cursor:pointer}
+.check input{width:22px;height:22px;flex:none;margin:1px 0 0;accent-color:var(--brand)}
+.big-time{font-size:56px;font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:4px 0}
+@media (max-width:900px){.hero{padding:22px 20px 76px}.hero h1{font-size:34px}.clock b{font-size:44px}main{padding:0 20px 40px}}
 </style>`;
 
   const body = `
-<header><div class="brand">The Furniture Shack <span>· Site sign-in</span></div><div class="clock"><b id="clock">--:--</b><span id="date"></span></div></header>
+<section class="hero"><div class="hero-in">
+  <div class="topline"><div class="wordmark">The Furniture Shack<i>/</i><span>Site sign-in</span></div></div>
+  <div class="hero-main">
+    <div><h1 id="hello">Welcome.</h1><p class="sub">Tap your name to sign in or out.</p>
+      <div class="stats"><span class="stat"><span class="dot on"></span><span id="sOn">0 on site</span></span><span class="stat"><span class="dot done"></span><span id="sDone">0 finished today</span></span></div></div>
+    <div class="clock"><b id="clock">--:--</b><span id="date"></span></div>
+  </div>
+</div></section>
 <main>
-  <div class="top">
-    <h1 id="hello">Tap your name to sign in or out</h1>
-    <input class="search" id="q" type="search" placeholder="Search your name…" autocomplete="off">
-    <button class="btn brand" id="newBtn">+ I'm new here</button>
+  <div class="toolbar">
+    <div class="searchwrap"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" type="search" placeholder="Search your name…" autocomplete="off"></div>
+    <button class="btn brand big" id="newBtn" style="font-size:16px;padding:16px 26px">+ I'm new here</button>
   </div>
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty" hidden></div>
@@ -102,7 +134,7 @@ function tickClock(){
   $("clock").textContent = p.nice;
   $("date").textContent = new Date().toLocaleDateString("en-AU", { timeZone: "Australia/Brisbane", weekday: "long", day: "numeric", month: "long", year: "numeric" });
   var g = p.hh < 12 ? "Good morning" : p.hh < 17 ? "Good afternoon" : "Good evening";
-  $("hello").textContent = g + "! Tap your name to sign in or out";
+  $("hello").innerHTML = g + "<em>.</em>";
 }
 
 function api(path, body){
@@ -118,14 +150,18 @@ function load(){
   });
 }
 
+function initials(w){ return h((w.first_name.charAt(0) + w.surname.charAt(0)).toUpperCase()); }
 function render(){
+  var on = workers.filter(function(w){ return w.status === "on_site"; }).length, done = workers.filter(function(w){ return w.status === "finished"; }).length;
+  $("sOn").textContent = on + " on site"; $("sDone").textContent = done + " finished today";
   var q = $("q").value.trim().toLowerCase();
   var list = workers.filter(function(w){ return !q || (w.first_name + " " + w.surname + " " + w.company).toLowerCase().indexOf(q) >= 0; });
   $("grid").innerHTML = list.map(function(w){
-    var pill = w.status === "on_site" ? '<span class="pill on">On site since ' + h(w.arrived) + '</span>'
-      : w.status === "finished" ? '<span class="pill done">Finished ' + h(w.finished) + '</span>'
-      : '<span class="pill">Not signed in</span>';
-    return '<button class="card" data-id="' + w.id + '"><div class="nm">' + h(w.first_name) + ' ' + h(w.surname) + '</div><div class="co">' + h(w.company) + '</div>' + pill + '</button>';
+    var cls = w.status === "on_site" ? "on" : w.status === "finished" ? "done" : "";
+    var st = w.status === "on_site" ? '<span class="dot on"></span>On site since ' + h(w.arrived)
+      : w.status === "finished" ? '<span class="dot done"></span>Finished ' + h(w.finished)
+      : '<span class="dot"></span>Not signed in';
+    return '<button class="card ' + cls + '" data-id="' + w.id + '"><div class="av">' + initials(w) + '</div><div><div class="nm">' + h(w.first_name) + ' ' + h(w.surname) + '</div><div class="co">' + h(w.company) + '</div><div class="st">' + st + '</div></div></button>';
   }).join("");
   var empty = $("empty");
   empty.hidden = list.length > 0;
@@ -141,12 +177,12 @@ function openWorker(w){
   state = { w: w };
   if (w.status === "not_arrived") return showArrive();
   if (w.status === "on_site") return showBreak();
-  open('<h2>Hi ' + h(w.first_name) + '!</h2><p>You signed out today at <b>' + h(w.finished) + '</b>.</p><p>See you next time! If something isn\\'t right, please let ' + h(MANAGER) + ' know.</p><div class="row"><button class="btn" data-act="close">OK</button></div>');
+  open('<div class="av xl">' + initials(w) + '</div><h2>Hi ' + h(w.first_name) + '!</h2><p>You signed out today at <b>' + h(w.finished) + '</b>.</p><p>See you next time! If something isn\\'t right, please let ' + h(MANAGER) + ' know.</p><div class="row"><button class="btn" data-act="close">OK</button></div>');
 }
 
 function showArrive(){
   var w = state.w;
-  open('<h2>Hi ' + h(w.first_name) + '!</h2><p>Signing you in at</p><div class="big-time" id="arrTime">' + nowParts().nice + '</div>'
+  open('<div class="av xl">' + initials(w) + '</div><h2>Hi ' + h(w.first_name) + '!</h2><p>Signing you in at</p><div class="big-time" id="arrTime">' + nowParts().nice + '</div>'
     + '<div class="row"><button class="btn brand big" data-act="arrive" autofocus>I\\'ve arrived</button></div>'
     + '<div class="err"></div>'
     + '<div class="row"><button class="link" data-act="close">Not you? Go back</button><button class="link" data-act="ovArrive">Override with manager</button></div>');
@@ -154,8 +190,8 @@ function showArrive(){
 
 function showBreak(){
   var w = state.w;
-  open('<h2>Finishing up, ' + h(w.first_name) + '?</h2><p>You arrived at <b>' + h(w.arrived) + '</b>.</p>'
-    + '<p style="margin-top:22px;font-weight:700;color:#111">Did you have a break today?</p>'
+  open('<div class="av xl">' + initials(w) + '</div><h2>Finishing up, ' + h(w.first_name) + '?</h2><p>You arrived at <b>' + h(w.arrived) + '</b>.</p>'
+    + '<p class="q">Did you have a break today?</p>'
     + '<div class="choice"><button class="btn big ' + (state.breakTaken === true ? "sel" : "ghost") + '" data-act="breakYes">Yes</button><button class="btn big ' + (state.breakTaken === false ? "sel" : "ghost") + '" data-act="breakNo">No</button></div>'
     + (state.breakTaken === true ? '<p style="margin-top:18px">How long was your break?</p><div class="choice">' + [15,30,45,60,90].map(function(m){ return '<button class="btn ' + (state.breakMins === m ? "sel" : "ghost") + '" data-act="mins" data-m="' + m + '">' + m + ' min</button>'; }).join("") + '</div>' : '')
     + '<div class="err"></div>'
@@ -192,7 +228,7 @@ function submit(kind, override){
 }
 
 function success(j){
-  open('<div class="tick">✓</div><h2>' + h(j.title) + '</h2><p style="font-size:21px;color:#111">' + h(j.message) + '</p>'
+  open('<div class="tick"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>' + h(j.title) + '</h2><p class="msg">' + h(j.message) + '</p>'
     + (j.summary ? '<p class="summary">' + h(j.summary) + '</p>' : '')
     + (j.note ? '<p class="note">' + h(j.note) + '</p>' : '')
     + '<div class="row"><button class="btn" data-act="close" autofocus>Done</button></div>');

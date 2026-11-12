@@ -6,11 +6,11 @@ import { esc, loadWeek, renderWeek, sendSummary, weekCsv, weekLabel } from "./su
 import { addDays, bneDate, bneHHMM, bneToUtcMs, fmtDateAU, fmtTime, isYmd, weekStart } from "./time";
 
 const ADMIN_CSS = `<style>
-nav{background:#111;color:#fff;padding:12px 24px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-nav b{margin-right:auto}nav a,nav button{color:#ddd;text-decoration:none;background:none;border:0;cursor:pointer;font-size:15px;padding:0}
+nav{background:#171717;color:#fff;padding:14px 28px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+nav b{margin-right:auto;font-size:13px;letter-spacing:.2em;text-transform:uppercase}nav b i{font-style:normal;color:var(--brand);margin:0 .5em}nav a,nav button{color:#a1a1aa;text-decoration:none;background:none;border:0;cursor:pointer;font-size:15px;padding:0}
 nav a:hover,nav button:hover{color:#fff}
 .wrap{max-width:1280px;margin:0 auto;padding:20px 24px 60px}
-.box{background:#fff;border-radius:14px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.05);overflow-x:auto}
+.box{background:#fff;border-radius:20px;padding:24px;box-shadow:var(--shadow);overflow-x:auto}
 .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .bar h1{margin:0;font-size:22px;margin-right:auto}
 .flash{background:#dcfce7;color:#15803d;padding:10px 14px;border-radius:10px;margin-bottom:14px;font-weight:600}
@@ -21,14 +21,14 @@ table.list{border-collapse:collapse;width:100%}table.list th,table.list td{paddi
 </style>`;
 
 function shell(title: string, content: string, flash?: { msg: string; bad?: boolean }): Response {
-  return page(`${title} — Timesheets`, `<nav><b>Contractor timesheets</b><a href="/admin">Weekly hours</a><a href="/admin/workers">Workers</a><a href="/" target="_blank">Kiosk</a><form method="post" action="/admin/logout" style="margin:0"><button>Log out</button></form></nav>
+  return page(`${title} — Timesheets`, `<nav><b>The Furniture Shack<i>/</i>Timesheets</b><a href="/admin">Weekly hours</a><a href="/admin/workers">Workers</a><a href="/" target="_blank">Kiosk</a><form method="post" action="/admin/logout" style="margin:0"><button>Log out</button></form></nav>
 <div class="wrap">${flash ? `<div class="flash${flash.bad ? " bad" : ""}">${esc(flash.msg)}</div>` : ""}${content}</div>`, ADMIN_CSS);
 }
 
 const redirect = (to: string, cookie?: string) => new Response(null, { status: 303, headers: { Location: to, ...(cookie ? { "Set-Cookie": cookie } : {}) } });
 
 function loginPage(managerName: string, error = ""): Response {
-  return page("Manager login — Timesheets", `<div style="max-width:420px;margin:12vh auto;padding:0 16px"><div style="background:#fff;border-radius:18px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+  return page("Manager login — Timesheets", `<div style="max-width:420px;margin:12vh auto;padding:0 16px"><div style="background:#fff;border-radius:28px;padding:36px;box-shadow:var(--shadow)"><div class="eyebrow">The Furniture Shack</div>
 <h1 style="margin:0 0 6px;font-size:24px">Manager area</h1><p style="color:#666;margin:0">Contractor hours, edits and the weekly summary.</p>
 <form method="post" action="/admin/login"><label for="code">Manager code (${esc(managerName)})</label><input id="code" name="code" type="password" inputmode="numeric" autocomplete="off" required autofocus>
 <div class="err">${esc(error)}</div><button class="btn" style="width:100%;margin-top:8px">Log in</button></form></div></div>`);
