@@ -8,8 +8,7 @@
     {
       "binding": "DB",
       "database_name": "timesheet",
-      // Replace with the id printed by `npx wrangler d1 create timesheet`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "8fc253c5-a6cf-4b1b-b8b3-6f6434c33c19",
       "migrations_dir": "migrations"
     }
   ],
