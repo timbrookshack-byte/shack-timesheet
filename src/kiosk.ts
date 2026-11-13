@@ -179,7 +179,7 @@ export async function finish(env: Env, body: Record<string, unknown>): Promise<R
     return json({ error: `The finish time must be after your arrival (${fmtTime(shift.arrived_at)}).` }, 400);
   }
   const span = Math.round((Date.parse(finishedIso) - Date.parse(shift.arrived_at)) / 60_000);
-  if (breakMins >= span) return json({ error: "Your break can't be longer than your time on site." }, 400);
+  if (breakMins > 0 && breakMins >= span) return json({ error: "Your break can't be longer than your time on site." }, 400);
 
   await env.DB.prepare("UPDATE shifts SET finished_at = ?, finished_clicked_at = ?, break_taken = ?, break_minutes = ? WHERE id = ?")
     .bind(finishedIso, nowIso, body.break_taken ? 1 : 0, breakMins, shift.id).run();

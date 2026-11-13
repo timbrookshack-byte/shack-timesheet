@@ -70,3 +70,9 @@ export async function checkManagerCode(env: Env, code: unknown): Promise<CodeRes
   if (ok) return { ok: true };
   return { ok: false, status: 401, error: `That manager code isn't right.` };
 }
+
+/** Non-secret UI marker so the manager pages can tell they're open on the kiosk laptop
+ * (shows "Back to kiosk" + 5-minute idle logout there only). Not used for access control. */
+export function deviceMarkerCookie(): string {
+  return `ts_device=kiosk; Path=/; Max-Age=${KIOSK_MAX_AGE}; Secure; SameSite=Lax`;
+}

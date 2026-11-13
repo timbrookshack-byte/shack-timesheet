@@ -3,7 +3,7 @@ import { ADMIN_MAX_AGE, checkManagerCode, clearCookie, hasCookie, makeCookie } f
 import { fmtMobile, normaliseMobile } from "./kiosk";
 import { page } from "./pages";
 import { esc, loadWeek, renderWeek, sendSummary, weekCsv, weekLabel } from "./summary";
-import { addDays, bneDate, bneHHMM, bneToUtcMs, fmtDateAU, fmtTime, isYmd, weekStart } from "./time";
+import { addDays, bneDate, bneHHMM, bneToUtcMs, fmtDateAU, fmtDuration, fmtTime, isYmd, weekStart, workedMinutes } from "./time";
 
 const ADMIN_CSS = `<style>
 nav{background:#171717;color:#fff;padding:14px 28px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
@@ -21,8 +21,8 @@ table.list{border-collapse:collapse;width:100%}table.list th,table.list td{paddi
 </style>`;
 
 function shell(title: string, content: string, flash?: { msg: string; bad?: boolean }): Response {
-  return page(`${title} — Timesheets`, `<nav><b>The Furniture Shack<i>/</i>Timesheets</b><a href="/admin">Weekly hours</a><a href="/admin/workers">Workers</a><form method="post" action="/admin/logout" style="margin:0"><input type="hidden" name="to" value="kiosk"><button>← Back to kiosk</button></form><form method="post" action="/admin/logout" style="margin:0" id="logoutForm"><button>Log out</button></form></nav>
-<script>(function(){var t;function arm(){clearTimeout(t);t=setTimeout(function(){var f=document.getElementById("logoutForm");var i=document.createElement("input");i.type="hidden";i.name="to";i.value="kiosk";f.appendChild(i);f.submit();},5*60*1000);}["click","keydown","input","scroll","touchstart"].forEach(function(e){document.addEventListener(e,arm,{passive:true});});arm();})();</script>
+  return page(`${title} — Timesheets`, `<nav><b>The Furniture Shack<i>/</i>Timesheets</b><a href="/admin">Weekly hours</a><a href="/admin/workers">Workers</a><form method="post" action="/admin/logout" style="margin:0;display:none" class="kiosk-only"><input type="hidden" name="to" value="kiosk"><button>← Back to kiosk</button></form><form method="post" action="/admin/logout" style="margin:0" id="logoutForm"><button>Log out</button></form></nav>
+<script>(function(){if(document.cookie.indexOf("ts_device=kiosk")<0)return;document.querySelectorAll(".kiosk-only").forEach(function(e){e.style.display="";});var t;function arm(){clearTimeout(t);t=setTimeout(function(){var f=document.getElementById("logoutForm");var i=document.createElement("input");i.type="hidden";i.name="to";i.value="kiosk";f.appendChild(i);f.submit();},5*60*1000);}["click","keydown","input","scroll","touchstart"].forEach(function(e){document.addEventListener(e,arm,{passive:true});});arm();})();</script>
 <div class="wrap">${flash ? `<div class="flash${flash.bad ? " bad" : ""}">${esc(flash.msg)}</div>` : ""}${content}</div>`, ADMIN_CSS);
 }
 
@@ -90,7 +90,7 @@ async function weekPage(env: Env, week: string, msg: string | null, bad: boolean
 <p class="muted" style="margin:-6px 0 14px">Total <b>${(d.grandTotal / 60).toFixed(2)} hrs</b> · ${totalWorkers} workers · Click any day to correct it or add a missed shift (every change is logged with a reason). The summary emails automatically every Monday 5:00am to ${esc(env.SUMMARY_TO)}${last ? ` · last sent for this week ${fmtDateAU(bneDate(Date.parse(last.sent_at)))} ${fmtTime(last.sent_at)} — ${last.ok ? "OK" : `failed: ${esc(last.detail)}`}` : ""}.</p>
 <div class="box">${renderWeek(d, (id, workerId, date) => (id ? `/admin/shift?id=${id}` : `/admin/shift?worker=${workerId}&date=${date}`))}</div>
 <p class="muted" style="margin-top:14px">Missing someone? Workers with no shifts this week aren't listed — add a shift from <a href="/admin/workers">Workers</a>.</p>`;
-  return shell("Weekly hours", content, msg ? { msg, bad } : undefined);
+  return shell("Weekly hours", (week === thisWeek ? await todayPanel(env) : "") + content, msg ? { msg, bad } : undefined);
 }
 
 type ShiftRow = { id: number; worker_id: number; work_date: string; arrived_at: string; finished_at: string | null; break_minutes: number; arrived_clicked_at: string; finished_clicked_at: string | null };
@@ -159,7 +159,7 @@ async function saveShift(env: Env, form: FormData): Promise<Response> {
   if (finRaw && finishedMs === null) return back("That finish time isn't valid.");
   if (finishedMs !== null && finishedMs <= arrivedMs) return back("Finish must be after arrival.");
   const brk = Math.max(0, Math.min(240, Math.round(Number(form.get("break")) || 0)));
-  if (finishedMs !== null && brk >= (finishedMs - arrivedMs) / 60_000) return back("The break can't be longer than the shift.");
+  if (finishedMs !== null && brk > 0 && brk >= (finishedMs - arrivedMs) / 60_000) return back("The break can't be longer than the shift.");
 
   // The form only has minute precision: an untouched HH:MM keeps the original (to-the-second) timestamp.
   const sameMinute = (iso: string | null, ms: number | null) => iso !== null && ms !== null && bneHHMM(Date.parse(iso)) === bneHHMM(ms);
@@ -222,4 +222,28 @@ async function saveWorker(env: Env, id: number, form: FormData): Promise<Respons
   await env.DB.prepare("UPDATE workers SET first_name = ?, surname = ?, mobile = ?, company = ?, active = ? WHERE id = ?")
     .bind(f("first_name").slice(0, 40), f("surname").slice(0, 40), mobile, f("company").slice(0, 80), form.get("active") === "1" ? 1 : 0, id).run();
   return redirect(`/admin/workers?msg=${encodeURIComponent("Saved.")}`);
+}
+
+/** "Who's here right now" — shown above the current week. */
+async function todayPanel(env: Env): Promise<string> {
+  const today = bneDate();
+  const { results } = await env.DB.prepare(
+    `SELECT s.id, s.arrived_at, s.finished_at, s.break_minutes, w.first_name, w.surname, w.company
+       FROM shifts s JOIN workers w ON w.id = s.worker_id
+      WHERE s.work_date = ? ORDER BY s.finished_at IS NOT NULL, s.arrived_at`,
+  ).bind(today).all<{ id: number; arrived_at: string; finished_at: string | null; break_minutes: number; first_name: string; surname: string; company: string }>();
+  const on = results.filter((r) => !r.finished_at);
+  const done = results.filter((r) => r.finished_at);
+  const now = Date.now();
+  const chip = (r: (typeof results)[number]) => {
+    const live = !r.finished_at;
+    const mins = live ? Math.max(0, Math.round((now - Date.parse(r.arrived_at)) / 60_000)) : workedMinutes(r.arrived_at, r.finished_at, r.break_minutes) ?? 0;
+    return `<a href="/admin/shift?id=${r.id}" style="display:flex;gap:12px;align-items:center;background:${live ? "#f0fdf4" : "var(--bg)"};border-radius:14px;padding:12px 14px;text-decoration:none;color:inherit;min-width:240px;flex:1 1 240px;max-width:340px">
+<span style="width:10px;height:10px;border-radius:50%;flex:none;background:${live ? "#22c55e" : "#a1a1aa"}"></span>
+<span style="flex:1"><b style="font-size:15px">${esc(r.first_name)} ${esc(r.surname)}</b><br><span class="muted">${esc(r.company)}</span></span>
+<span style="text-align:right;font-size:13px">${fmtTime(r.arrived_at)} – ${live ? "now" : fmtTime(r.finished_at)}<br><b>${fmtDuration(mins)}</b>${live ? ' <span class="muted">so far</span>' : ""}</span></a>`;
+  };
+  return `<div class="box" style="margin-bottom:20px"><div class="bar" style="margin-bottom:12px"><h1 style="font-size:20px">Today — ${fmtDateAU(today)}</h1>
+<span class="muted"><b style="color:#15803d">${on.length} on site now</b> · ${done.length} finished</span></div>
+${results.length ? `<div style="display:flex;flex-wrap:wrap;gap:10px">${[...on, ...done].map(chip).join("")}</div>` : `<p class="muted" style="margin:0">No one has signed in yet today.</p>`}</div>`;
 }

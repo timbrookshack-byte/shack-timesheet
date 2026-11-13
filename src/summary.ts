@@ -49,8 +49,8 @@ export async function loadWeek(env: Env, start: string): Promise<WeekData> {
     }
     const worked = workedMinutes(s.arrived_at, s.finished_at, s.break_minutes);
     w.days[dates.indexOf(s.work_date)] = { shift_id: s.id, arrived_at: s.arrived_at, finished_at: s.finished_at, break_minutes: s.break_minutes, worked, overridden: !!s.overridden };
-    if (worked === null) w.missingFinish++;
-    else w.total += worked;
+    if (worked !== null) w.total += worked;
+    else if (s.work_date !== bneDate()) w.missingFinish++; // today's open shift = still on site
   }
 
   const groups = new Map<string, WorkerWeek[]>();
@@ -105,6 +105,7 @@ function adjValue(field: string, v: string | null): string {
  */
 export function renderWeek(d: WeekData, link?: (shiftId: number | null, workerId: number, date: string) => string): string {
   if (d.companies.length === 0) return `<p style="font-size:14px;color:#555">No sign-ins recorded for this week.</p>`;
+  const today = bneDate();
   const head = `<tr><th style="${TH}">Worker</th>${d.dates.map((dt) => `<th style="${TH}">${DAY_NAMES[dayOfWeek(dt)]}<br><span style="font-weight:normal;color:#666">${fmtDateAU(dt).slice(0, 5)}</span></th>`).join("")}<th style="${TH};text-align:right">Total</th></tr>`;
 
   const sections = d.companies.map((c) => {
@@ -113,11 +114,12 @@ export function renderWeek(d: WeekData, link?: (shiftId: number | null, workerId
         let inner: string;
         if (!cell) inner = `<span style="color:#bbb">—</span>`;
         else {
-          const fin = cell.finished_at ? fmtTime(cell.finished_at) : `<span style="color:#c00;font-weight:bold">no sign-out</span>`;
+          const live = !cell.finished_at && d.dates[i] === today;
+          const fin = cell.finished_at ? fmtTime(cell.finished_at) : live ? `<span style="color:#15803d;font-weight:bold">on site now</span>` : `<span style="color:#c00;font-weight:bold">no sign-out</span>`;
           inner = `${fmtTime(cell.arrived_at)} – ${fin}<br><span style="color:#666">${cell.break_minutes ? `${cell.break_minutes}m break` : "no break"}${cell.worked !== null ? ` · <b style="color:#111">${fmtDuration(cell.worked)}</b>` : ""}</span>${cell.overridden ? `<br><span style="color:#a21caf;font-weight:bold">⚑ manager override</span>` : ""}`;
         }
         if (link) inner = `<a href="${link(cell?.shift_id ?? null, w.worker_id, d.dates[i])}" style="color:inherit;text-decoration:none;display:block">${inner}</a>`;
-        return `<td style="${TD}${cell && !cell.finished_at ? ";background:#fff1f1" : ""}">${inner}</td>`;
+        return `<td style="${TD}${cell && !cell.finished_at ? (d.dates[i] === today ? ";background:#f0fdf4" : ";background:#fff1f1") : ""}">${inner}</td>`;
       }).join("");
       return `<tr><td style="${TD}"><b>${esc(w.first_name)} ${esc(w.surname)}</b><br><span style="color:#666">${esc(fmtMobile(w.mobile))}</span></td>${cells}<td style="${TD};text-align:right"><b>${fmtDuration(w.total)}</b><br><span style="color:#666">${decimalHours(w.total)} hrs</span>${w.missingFinish ? `<br><span style="color:#c00">+${w.missingFinish} without sign-out</span>` : ""}</td></tr>`;
     }).join("");

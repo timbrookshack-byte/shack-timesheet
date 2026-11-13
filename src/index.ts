@@ -1,6 +1,6 @@
 import type { Env } from "./env";
 import { handleAdmin } from "./admin";
-import { checkManagerCode, hasCookie, KIOSK_MAX_AGE, makeCookie } from "./auth";
+import { checkManagerCode, deviceMarkerCookie, hasCookie, KIOSK_MAX_AGE, makeCookie } from "./auth";
 import { arrive, finish, json, listWorkers, registerWorker } from "./kiosk";
 import { devicePage, kioskPage } from "./pages";
 import { previousWeekStart, sendSummary } from "./summary";
@@ -13,7 +13,10 @@ async function route(req: Request, env: Env): Promise<Response> {
     if (req.method !== "POST") return devicePage();
     const res = await checkManagerCode(env, (await req.formData()).get("code"));
     if (!res.ok) return devicePage(res.error);
-    return new Response(null, { status: 303, headers: { Location: "/", "Set-Cookie": await makeCookie(env, "kiosk", KIOSK_MAX_AGE) } });
+    const h = new Headers({ Location: "/" });
+    h.append("Set-Cookie", await makeCookie(env, "kiosk", KIOSK_MAX_AGE));
+    h.append("Set-Cookie", deviceMarkerCookie());
+    return new Response(null, { status: 303, headers: h });
   }
 
   if (p === "/admin" || p.startsWith("/admin/")) return handleAdmin(req, env, url);
@@ -27,6 +30,7 @@ async function route(req: Request, env: Env): Promise<Response> {
   if (p === "/" && req.method === "GET") {
     const res = kioskPage(env.MANAGER_NAME);
     res.headers.append("Set-Cookie", await makeCookie(env, "kiosk", KIOSK_MAX_AGE)); // keep the 400-day cookie fresh
+    res.headers.append("Set-Cookie", deviceMarkerCookie());
     return res;
   }
   if (p === "/api/workers" && req.method === "GET") return listWorkers(env);
