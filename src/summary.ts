@@ -25,7 +25,7 @@ export type WorkerWeek = {
   missingFinish: number;
 };
 
-export type Adjustment = { work_date: string; name: string; field: string; old_value: string | null; new_value: string | null; reason: string; source: string; created_at: string };
+export type Adjustment = { work_date: string; name: string; field: string; old_value: string | null; new_value: string | null; reason: string; source: string; created_at: string; changed_by: string | null };
 
 export type WeekData = { start: string; dates: string[]; companies: { company: string; workers: WorkerWeek[]; total: number }[]; adjustments: Adjustment[]; grandTotal: number };
 
@@ -68,7 +68,7 @@ export async function loadWeek(env: Env, start: string): Promise<WeekData> {
     }));
 
   const { results: adjustments } = await env.DB.prepare(
-    `SELECT a.work_date, w.first_name || ' ' || w.surname AS name, a.field, a.old_value, a.new_value, a.reason, a.source, a.created_at
+    `SELECT a.work_date, w.first_name || ' ' || w.surname AS name, a.field, a.old_value, a.new_value, a.reason, a.source, a.created_at, a.changed_by
        FROM adjustments a JOIN workers w ON w.id = a.worker_id
       WHERE a.work_date BETWEEN ? AND ? ORDER BY a.work_date, a.created_at`,
   ).bind(start, end).all<Adjustment>();
@@ -129,8 +129,8 @@ export function renderWeek(d: WeekData, link?: (shiftId: number | null, workerId
 
   const audit = d.adjustments.length
     ? `<h3 style="font-size:15px;margin:26px 0 6px">Manager overrides &amp; edits</h3>
-<table style="border-collapse:collapse;width:100%"><tr><th style="${TH}">Date</th><th style="${TH}">Worker</th><th style="${TH}">Change</th><th style="${TH}">Reason</th></tr>${d.adjustments
-        .map((a) => `<tr><td style="${TD}">${fmtDateAU(a.work_date)}</td><td style="${TD}">${esc(a.name)}</td><td style="${TD}">${fieldLabel(a.field)}: ${esc(adjValue(a.field, a.old_value))} → ${esc(adjValue(a.field, a.new_value))}${a.source === "kiosk_override" ? " (at kiosk)" : ""}</td><td style="${TD};white-space:normal">${esc(a.reason)}</td></tr>`)
+<table style="border-collapse:collapse;width:100%"><tr><th style="${TH}">Date</th><th style="${TH}">Worker</th><th style="${TH}">Change</th><th style="${TH}">Reason</th><th style="${TH}">By</th></tr>${d.adjustments
+        .map((a) => `<tr><td style="${TD}">${fmtDateAU(a.work_date)}</td><td style="${TD}">${esc(a.name)}</td><td style="${TD}">${fieldLabel(a.field)}: ${esc(adjValue(a.field, a.old_value))} → ${esc(adjValue(a.field, a.new_value))}${a.source === "kiosk_override" ? " (at kiosk)" : ""}</td><td style="${TD};white-space:normal">${esc(a.reason)}</td><td style="${TD}">${esc(a.changed_by ?? "—")}</td></tr>`)
         .join("")}</table>`
     : "";
 

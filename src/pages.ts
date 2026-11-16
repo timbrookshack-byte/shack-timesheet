@@ -207,7 +207,7 @@ function showOverride(kind){
   open('<h2>Manager override</h2><p>' + h(w.first_name) + ' ' + h(w.surname) + ' — ' + (kind === "arrive" ? "arrival" : "finish") + ' time today.</p>'
     + '<form id="ovForm"><label for="ovTime">' + (kind === "arrive" ? "Arrival" : "Finish") + ' time</label><input id="ovTime" type="time" required value="' + nowParts().hhmm + '">'
     + '<label for="ovReason">Reason</label><input id="ovReason" type="text" required maxlength="200" placeholder="e.g. Arrived 6:45, forgot to sign in">'
-    + '<label for="ovCode">Manager code (' + h(MANAGER) + ')</label><input id="ovCode" type="password" inputmode="numeric" autocomplete="off" required>'
+    + '<label for="ovCode">Manager code</label><input id="ovCode" type="password" inputmode="numeric" autocomplete="off" required>'
     + '<div class="err"></div><div class="row"><button type="button" class="btn ghost" data-act="back">Cancel</button><button class="btn brand">Save time</button></div></form>');
   $("ovTime").focus();
   $("ovForm").addEventListener("submit", function(e){

@@ -60,8 +60,8 @@ const titleCase = (s: string) => s.replace(/(^|[\s'-])(\p{L})/gu, (_, a: string,
 type Override = { time?: unknown; code?: unknown; reason?: unknown } | undefined;
 
 /** Validates a kiosk "override with manager" request. Returns the overriding instant, or an error response. */
-async function resolveOverride(env: Env, ov: Override, workDate: string, now: number): Promise<{ ms: number | null; reason: string } | Response> {
-  if (!ov) return { ms: null, reason: "" };
+async function resolveOverride(env: Env, ov: Override, workDate: string, now: number): Promise<{ ms: number | null; reason: string; by: string } | Response> {
+  if (!ov) return { ms: null, reason: "", by: "" };
   const reason = clean(ov.reason, 200);
   if (reason.length < 3) return json({ error: "Please give a reason for the change." }, 400);
   const ms = typeof ov.time === "string" ? bneToUtcMs(workDate, ov.time) : null;
@@ -69,7 +69,7 @@ async function resolveOverride(env: Env, ov: Override, workDate: string, now: nu
   if (ms > now + 60_000) return json({ error: "The time can't be in the future." }, 400);
   const code = await checkManagerCode(env, ov.code);
   if (!code.ok) return json({ error: code.error }, code.status);
-  return { ms, reason };
+  return { ms, reason, by: code.who.name };
 }
 
 export async function listWorkers(env: Env): Promise<Response> {
@@ -140,8 +140,8 @@ export async function arrive(env: Env, body: Record<string, unknown>): Promise<R
   ).bind(worker.id, today, arrivedIso, nowIso, nowIso).first<{ id: number }>();
   if (ov.ms !== null) {
     await env.DB.prepare(
-      "INSERT INTO adjustments (shift_id, worker_id, work_date, field, old_value, new_value, reason, source, created_at) VALUES (?, ?, ?, 'arrived_at', ?, ?, ?, 'kiosk_override', ?)",
-    ).bind(row!.id, worker.id, today, nowIso, arrivedIso, ov.reason, nowIso).run();
+      "INSERT INTO adjustments (shift_id, worker_id, work_date, field, old_value, new_value, reason, source, created_at, changed_by) VALUES (?, ?, ?, 'arrived_at', ?, ?, ?, 'kiosk_override', ?, ?)",
+    ).bind(row!.id, worker.id, today, nowIso, arrivedIso, ov.reason, nowIso, ov.by).run();
   }
 
   // Gentle nudge if a previous day was never signed out.
@@ -185,8 +185,8 @@ export async function finish(env: Env, body: Record<string, unknown>): Promise<R
     .bind(finishedIso, nowIso, body.break_taken ? 1 : 0, breakMins, shift.id).run();
   if (ov.ms !== null) {
     await env.DB.prepare(
-      "INSERT INTO adjustments (shift_id, worker_id, work_date, field, old_value, new_value, reason, source, created_at) VALUES (?, ?, ?, 'finished_at', ?, ?, ?, 'kiosk_override', ?)",
-    ).bind(shift.id, worker.id, today, nowIso, finishedIso, ov.reason, nowIso).run();
+      "INSERT INTO adjustments (shift_id, worker_id, work_date, field, old_value, new_value, reason, source, created_at, changed_by) VALUES (?, ?, ?, 'finished_at', ?, ?, ?, 'kiosk_override', ?, ?)",
+    ).bind(shift.id, worker.id, today, nowIso, finishedIso, ov.reason, nowIso, ov.by).run();
   }
 
   const worked = workedMinutes(shift.arrived_at, finishedIso, breakMins)!;

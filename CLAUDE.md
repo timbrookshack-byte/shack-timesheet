@@ -23,6 +23,11 @@ See `README.md` for features, deploy steps and file layout.
   without logging an adjustment.
 - The kiosk only works on the device that has the signed `ts_kiosk` cookie (set at
   `/device` with the manager code). Keep the kiosk API behind that check.
+- **Who did it.** Codes are personal: Alex's `MANAGER_CODE` secret (subject "0") plus
+  `managers` rows (code stored as HMAC(SESSION_SECRET) in `code_hash`). The admin cookie carries the
+  manager id, and `currentManager` re-checks `active` on every request. Every `adjustments` insert
+  must set `changed_by`. Only owners manage access. Alex's master code can do it only while no
+  active owner exists (bootstrap).
 - The manager-code check goes through `checkManagerCode` (it enforces the lockout):
   5 wrong codes in 15 min locks entry for 15 min.
 - **Timezone: Australia/Brisbane (UTC+10, no DST)**. Use the helpers in `src/time.ts`.

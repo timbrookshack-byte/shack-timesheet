@@ -15,6 +15,7 @@ It runs as a Cloudflare Worker with a D1 database (SQLite). The weekly email goe
 - After 5 wrong manager codes in 15 minutes, code entry is locked for 15 minutes.
 
 **Manager area (`/admin`)** uses the same manager code.
+- **Personal codes (Access page).** Owners (Tim, Shaun) and any extra managers each have their own 6–12 digit code. Every override and edit records **who** made it, in the shift history, the weekly table and the Monday email. Owners add people, reset codes and switch access off; switching someone off takes effect immediately, even if they're signed in. Anyone with a personal code can change it under *Access*. Alex's original `MANAGER_CODE` secret keeps working. It can set up the first owner, after which only owners manage access.
 - **Open from anywhere.** Owners and managers can log in from their own laptops or phones at `/admin`; only the sign-in kiosk itself is locked to the warehouse laptop.
 - *Today* panel at the top: who is **on site now** (since when, and hours so far) and who has finished. Today's open shifts show as "on site now", not as a missing sign-out.
 - On the kiosk laptop only, the manager area shows **← Back to kiosk** (which logs out) and logs itself out after 5 idle minutes. On other devices the login lasts 12 hours.
