@@ -28,6 +28,16 @@ It runs as a Cloudflare Worker with a D1 database (SQLite). The weekly email goe
 
 Hours worked = sign-out − sign-in − break. All times are in Australia/Brisbane.
 
+## Updates go live automatically
+
+Cloudflare Workers Builds is connected to this repo. **Every push to `main` deploys automatically**: Cloudflare runs `npx wrangler deploy`, and you can watch it in the Cloudflare dashboard under Workers & Pages, then shack-timesheet, then Deployments. Nothing needs to be run locally.
+
+The one exception is a change that adds a file to `migrations/`. Database changes are not applied by the automatic deploy, so run this once from a computer logged in with `wrangler login`:
+
+```bash
+npm run db:migrate
+```
+
 ## Deploy (one-time)
 
 ```bash

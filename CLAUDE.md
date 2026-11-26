@@ -39,6 +39,13 @@ See `README.md` for features, deploy steps and file layout.
   the email table is inline because the same renderer (`renderWeek`) feeds both the email and `/admin`.
 - Migrations in `migrations/` are append-only. Never edit an applied one.
 
+## Deploys
+
+Pushing to `main` deploys to production automatically (Cloudflare Workers Builds runs `npx wrangler deploy`).
+Only push tested work to `main`. New migrations are NOT applied by the automatic deploy: tell the
+user to run `npm run db:migrate`, and make the code tolerate the migration not having run yet,
+or have them migrate before pushing.
+
 ## Commands
 
 - `npm run dev` — local (`cp .dev.vars.example .dev.vars`, `npm run db:migrate:local` first;
