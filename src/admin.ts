@@ -6,9 +6,19 @@ import { esc, loadWeek, renderWeek, sendSummary, weekCsv, weekLabel } from "./su
 import { addDays, bneDate, bneHHMM, bneToUtcMs, fmtDateAU, fmtDuration, fmtTime, isYmd, weekStart, workedMinutes } from "./time";
 
 const ADMIN_CSS = `<style>
-nav{background:#171717;color:#fff;padding:14px 28px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-nav b{margin-right:auto;font-size:13px;letter-spacing:.2em;text-transform:uppercase}nav b i{font-style:normal;color:var(--brand);margin:0 .5em}nav a,nav button{color:#a1a1aa;text-decoration:none;background:none;border:0;cursor:pointer;font-size:15px;padding:0}
-nav a:hover,nav button:hover{color:#fff}
+nav{position:sticky;top:0;z-index:20;background:#171717;color:#fff;padding:10px 24px;display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+.navbrand{font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;white-space:nowrap}.navbrand i{font-style:normal;color:var(--brand);margin:0 .5em}
+.tabs{display:flex;gap:6px;flex:1;overflow-x:auto;scrollbar-width:none}
+.tab{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;color:#e4e4e7;text-decoration:none;font-size:15px;font-weight:500;white-space:nowrap;transition:background .15s,color .15s}
+.tab:hover{background:rgba(255,255,255,.1);color:#fff}
+.tab.active{background:#fff;color:#171717;font-weight:600}
+.tab svg{flex:none}
+.navright{display:flex;gap:10px;align-items:center;white-space:nowrap}
+.who{color:#a1a1aa;font-size:13px}.who b{color:#fff}
+.navbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.25);background:none;color:#fff;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:500;cursor:pointer}
+.navbtn:hover{background:rgba(255,255,255,.1)}
+.navbtn.kiosk{background:var(--brand);border-color:var(--brand)}
+@media (max-width:760px){nav{padding:8px 10px}.navbrand{display:none}.tabs{order:2;flex-basis:100%;justify-content:space-between}.tab{flex:1;justify-content:center;padding:10px 8px;font-size:14px;gap:6px}.navright{margin-left:auto}.who{display:none}.navbtn{padding:7px 14px;font-size:13px}.wrap{padding:16px 14px 48px}.grid2{grid-template-columns:1fr!important}.box{padding:18px!important}}
 .wrap{max-width:1280px;margin:0 auto;padding:20px 24px 60px}
 .box{background:#fff;border-radius:20px;padding:24px;box-shadow:var(--shadow);overflow-x:auto}
 .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
@@ -20,8 +30,24 @@ table.list{border-collapse:collapse;width:100%}table.list th,table.list td{paddi
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
 </style>`;
 
+const ICONS = {
+  week: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  workers: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/></svg>',
+  access: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+};
+
+/** Which top tab a page belongs to, so the menu always shows where you are. */
+const TAB_OF: Record<string, "week" | "workers" | "access"> = { "Weekly hours": "week", Shift: "week", Workers: "workers", Worker: "workers", Access: "access" };
+
 function shell(me: Manager, title: string, content: string, flash?: { msg: string; bad?: boolean }): Response {
-  return page(`${title} — Timesheets`, `<nav><b>The Furniture Shack<i>/</i>Timesheets</b><a href="/admin">Weekly hours</a><a href="/admin/workers">Workers</a><a href="/admin/access">${me.role === "manager" ? "My code" : "Access"}</a><span style="color:#71717a;font-size:13px">Signed in as <b style="color:#fff;letter-spacing:0;text-transform:none;font-size:13px;margin:0">${esc(me.name)}</b></span><form method="post" action="/admin/logout" style="margin:0;display:none" class="kiosk-only"><input type="hidden" name="to" value="kiosk"><button>← Back to kiosk</button></form><form method="post" action="/admin/logout" style="margin:0" id="logoutForm"><button>Log out</button></form></nav>
+  const active = TAB_OF[title];
+  const tab = (key: "week" | "workers" | "access", href: string, label: string) =>
+    `<a class="tab${active === key ? " active" : ""}" href="${href}"${active === key ? ' aria-current="page"' : ""}>${ICONS[key]}${label}</a>`;
+  return page(`${title} — Timesheets`, `<nav><span class="navbrand">The Furniture Shack<i>/</i>Timesheets</span>
+<div class="tabs">${tab("week", "/admin", "Timesheets")}${tab("workers", "/admin/workers", "Workers")}${tab("access", "/admin/access", me.role === "manager" ? "My code" : "Access")}</div>
+<div class="navright"><span class="who">Signed in as <b>${esc(me.name)}</b></span>
+<form method="post" action="/admin/logout" style="margin:0;display:none" class="kiosk-only"><input type="hidden" name="to" value="kiosk"><button class="navbtn kiosk">← Back to kiosk</button></form>
+<form method="post" action="/admin/logout" style="margin:0" id="logoutForm"><button class="navbtn">Log out</button></form></div></nav>
 <script>(function(){if(document.cookie.indexOf("ts_device=kiosk")<0)return;document.querySelectorAll(".kiosk-only").forEach(function(e){e.style.display="";});var t;function arm(){clearTimeout(t);t=setTimeout(function(){var f=document.getElementById("logoutForm");var i=document.createElement("input");i.type="hidden";i.name="to";i.value="kiosk";f.appendChild(i);f.submit();},5*60*1000);}["click","keydown","input","scroll","touchstart"].forEach(function(e){document.addEventListener(e,arm,{passive:true});});arm();})();</script>
 <div class="wrap">${flash ? `<div class="flash${flash.bad ? " bad" : ""}">${esc(flash.msg)}</div>` : ""}${content}</div>`, ADMIN_CSS);
 }
