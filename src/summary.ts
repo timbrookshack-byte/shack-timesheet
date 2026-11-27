@@ -175,7 +175,7 @@ export async function sendSummary(env: Env, start: string, trigger: "cron" | "ma
     detail = "RESEND_API_KEY not set — email skipped";
   } else {
     const csv = weekCsv(d);
-    const res = await fetch("https://api.resend.com/emails", {
+    const res = await fetch(`${env.RESEND_BASE_URL || "https://api.resend.com"}/emails`, {
       method: "POST",
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -3,6 +3,7 @@ import { handleAdmin } from "./admin";
 import { checkManagerCode, deviceMarkerCookie, hasCookie, KIOSK_MAX_AGE, makeCookie } from "./auth";
 import { arrive, finish, json, listWorkers, registerWorker } from "./kiosk";
 import { devicePage, kioskPage } from "./pages";
+import { sendMyHours } from "./hours-email";
 import { previousWeekStart, sendSummary } from "./summary";
 
 async function route(req: Request, env: Env): Promise<Response> {
@@ -41,6 +42,7 @@ async function route(req: Request, env: Env): Promise<Response> {
     if (p === "/api/workers") return registerWorker(env, body);
     if (p === "/api/arrive") return arrive(env, body);
     if (p === "/api/finish") return finish(env, body);
+    if (p === "/api/my-hours") return sendMyHours(env, body);
   }
   return new Response("Not found", { status: 404 });
 }

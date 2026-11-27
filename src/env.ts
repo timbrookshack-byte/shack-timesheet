@@ -6,6 +6,8 @@ export interface Env {
   SESSION_SECRET: string;
   /** Resend API key for the weekly summary email. Secret; email is skipped without it. */
   RESEND_API_KEY?: string;
+  /** Override for Resend's API base (local tests only). Default https://api.resend.com */
+  RESEND_BASE_URL?: string;
   EMAIL_FROM: string;
   /** Comma-separated recipients of the Monday 5am summary. */
   SUMMARY_TO: string;

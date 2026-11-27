@@ -14,6 +14,8 @@ It runs as a Cloudflare Worker with a D1 database (SQLite). The weekly email goe
 - **Override with manager**: the worker enters a different arrival or finish time and a reason, and Alex enters the manager code. Each override is logged with the time the button was actually pressed, the new time and the reason. It shows as **⚑ manager override** in reports.
 - After 5 wrong manager codes in 15 minutes, code entry is locked for 15 minutes.
 
+- **Send me my hours**: after signing out, a worker can tap *Send me my hours for this week* on the thank-you screen. It emails them that week's shifts (in, out, break, hours) plus the week's total, so they can fill in their contractor timesheet. The email they gave at sign-up is pre-filled, and changing it there updates their record. It's only available right after signing out, and is capped at 3 emails per worker per day. Needs migration 0003 and `RESEND_API_KEY`.
+
 **Manager area (`/admin`)** uses the same manager code.
 - **Personal codes (Access page).** Owners (Tim, Shaun) and any extra managers each have their own 6–12 digit code. Every override and edit records **who** made it, in the shift history, the weekly table and the Monday email. Owners add people, reset codes and switch access off; switching someone off takes effect immediately, even if they're signed in. Anyone with a personal code can change it under *Access*. Alex's original `MANAGER_CODE` secret keeps working. It can set up the first owner, after which only owners manage access.
 - **Open from anywhere.** Owners and managers can log in from their own laptops or phones at `/admin`; only the sign-in kiosk itself is locked to the warehouse laptop.

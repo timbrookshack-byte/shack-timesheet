@@ -12,7 +12,7 @@ button,input,select{font:inherit;color:inherit}
 .btn.big{font-size:20px;padding:20px 38px}
 .btn.sm{font-size:13px;padding:8px 16px}
 .link{background:none;border:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:14px;padding:6px}.link:hover{color:var(--ink)}.link:disabled{opacity:.4;cursor:default}
-input[type=text],input[type=tel],input[type=password],input[type=time],input[type=date],input[type=number],input[type=search],select{width:100%;padding:13px 16px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:16px;transition:border-color .15s,box-shadow .15s}
+input[type=text],input[type=email],input[type=tel],input[type=password],input[type=time],input[type=date],input[type=number],input[type=search],select{width:100%;padding:13px 16px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:16px;transition:border-color .15s,box-shadow .15s}
 input:focus,select:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 4px rgba(23,23,23,.06)}
 label{display:block;font-weight:600;font-size:14px;margin:16px 0 6px}
 .err{color:var(--warn);font-weight:500;font-size:14px;margin-top:12px;min-height:1.2em}
@@ -95,6 +95,7 @@ main{max-width:1240px;margin:-48px auto 0;padding:0 40px 60px;position:relative}
 .summary{background:var(--bg);border-radius:14px;padding:12px 14px;font-size:15px!important}
 .check{display:flex;gap:12px;align-items:flex-start;font-weight:500;font-size:15px;margin-top:18px;background:var(--brand-soft);border-radius:14px;padding:16px;cursor:pointer}
 .check input{width:22px;height:22px;flex:none;margin:1px 0 0;accent-color:var(--brand)}
+.hrs{margin-top:20px;background:var(--bg);border-radius:16px;padding:16px;text-align:left}.hrs .hrow{display:flex;gap:10px;margin-top:8px}.hrs .hrow input{flex:1}.hrs .ok{color:var(--ok);font-weight:600;font-size:15px;margin:0}.hrs .err{margin-top:8px}
 .big-time{font-size:56px;font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums;margin:4px 0}
 @media (max-width:900px){.hero{padding:22px 20px 76px}.hero h1{font-size:34px}.clock b{font-size:44px}main{padding:0 20px 40px}}
 </style>`;
@@ -232,8 +233,27 @@ function success(j){
   open('<div class="tick"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><h2>' + h(j.title) + '</h2><p class="msg">' + h(j.message) + '</p>'
     + (j.summary ? '<p class="summary">' + h(j.summary) + '</p>' : '')
     + (j.note ? '<p class="note">' + h(j.note) + '</p>' : '')
+    + (j.hours_email ? '<div class="hrs" id="hrs"><button class="btn ghost" data-act="hrsOpen" style="width:100%">✉️&nbsp; Send me my hours for this week</button></div>' : '')
     + '<div class="row"><button class="btn" data-act="close" autofocus>Done</button></div>');
-  closeTimer = setTimeout(close, j.note ? 15000 : 8000);
+  if (j.hours_email) { state.hrsWorker = state.w.id; state.hrsEmail = j.hours_email.email || ""; }
+  closeTimer = setTimeout(close, j.note ? 15000 : j.hours_email ? 12000 : 8000);
+}
+function rearm(ms){ clearTimeout(closeTimer); closeTimer = setTimeout(close, ms); }
+function hrsOpen(){
+  rearm(60000);
+  $("hrs").innerHTML = '<form id="hrsForm"><label for="hrsEmail" style="margin-top:0">Send this week\\'s shifts and breaks to:</label><div class="hrow"><input id="hrsEmail" type="email" required placeholder="you@example.com" autocomplete="off" value="' + h(state.hrsEmail) + '"><button class="btn brand">Send</button></div><div class="err"></div></form>';
+  var inp = $("hrsEmail"); inp.focus();
+  inp.addEventListener("input", function(){ rearm(60000); });
+  $("hrsForm").addEventListener("submit", function(e){
+    e.preventDefault(); rearm(60000);
+    var btn = $("hrsForm").querySelector("button"); btn.disabled = true; btn.textContent = "Sending…";
+    var errEl = $("hrsForm").querySelector(".err"); errEl.textContent = "";
+    api("/api/my-hours", { worker_id: state.hrsWorker, email: inp.value }).then(function(r){
+      if (r.error) { btn.disabled = false; btn.textContent = "Send"; errEl.textContent = r.error; return; }
+      $("hrs").innerHTML = '<p class="ok">✓ ' + h(r.message) + '</p>';
+      rearm(6000);
+    });
+  });
 }
 
 function showRegister(){
@@ -243,6 +263,7 @@ function showRegister(){
     + '<div style="display:flex;gap:12px"><div style="flex:1"><label for="fn">First name</label><input id="fn" type="text" required maxlength="40" autocapitalize="words"></div>'
     + '<div style="flex:1"><label for="sn">Surname</label><input id="sn" type="text" required maxlength="40" autocapitalize="words"></div></div>'
     + '<label for="mob">Mobile number</label><input id="mob" type="tel" required placeholder="0412 345 678" maxlength="20">'
+    + '<label for="em">Email <span style="font-weight:400;color:var(--muted)">(optional — so you can email yourself your weekly hours)</span></label><input id="em" type="email" maxlength="120" placeholder="you@example.com" autocomplete="off">'
     + '<label for="co">Contract company</label><input id="co" type="text" required maxlength="80" list="companies" placeholder="Who do you work for?">'
     + '<datalist id="companies">' + companies().map(function(c){ return '<option value="' + h(c) + '">'; }).join("") + '</datalist>'
     + '<label class="check"><input id="ind" type="checkbox" required><span>I have been inducted and I am aware of the workplace rules and regulations.</span></label>'
@@ -252,7 +273,7 @@ function showRegister(){
     e.preventDefault();
     if (!$("ind").checked) return err("Please tick to confirm you've been inducted.");
     busy(true); err("");
-    api("/api/workers", { first_name: $("fn").value, surname: $("sn").value, mobile: $("mob").value, company: $("co").value, inducted: $("ind").checked }).then(function(j){
+    api("/api/workers", { first_name: $("fn").value, surname: $("sn").value, mobile: $("mob").value, email: $("em").value, company: $("co").value, inducted: $("ind").checked }).then(function(j){
       busy(false);
       if (j.error) return err(j.error);
       workers.push(j.worker);
@@ -275,6 +296,7 @@ document.addEventListener("click", function(e){
   else if (act === "breakNo") { state.breakTaken = false; state.breakMins = 0; showBreak(); }
   else if (act === "mins") { state.breakMins = Number(b.dataset.m); showBreak(); }
   else if (act === "finish") submit("finish");
+  else if (act === "hrsOpen") hrsOpen();
   else if (act === "ovFinish") showOverride("finish");
   else if (act === "back") { if (state.ov === "arrive") showArrive(); else showBreak(); }
 });

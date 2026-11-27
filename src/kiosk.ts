@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import { checkManagerCode } from "./auth";
+import { emailEnabled, normaliseEmail, saveWorkerEmail, workerEmail } from "./hours-email";
 import { bneDate, bneHour, bneToUtcMs, dayOfWeek, fmtDateAU, fmtDuration, fmtTime, workedMinutes } from "./time";
 
 export function json(data: unknown, status = 200): Response {
@@ -102,6 +103,8 @@ export async function registerWorker(env: Env, body: Record<string, unknown>): P
   if (!first || !surname) return json({ error: "Please enter your first name and surname." }, 400);
   if (!mobile) return json({ error: "Please enter a valid Australian mobile number, e.g. 0412 345 678." }, 400);
   if (!company) return json({ error: "Please enter the contract company you work for." }, 400);
+  const email = typeof body.email === "string" && body.email.trim() ? normaliseEmail(body.email) : null;
+  if (typeof body.email === "string" && body.email.trim() && !email) return json({ error: "That email address doesn't look right — check it, or leave it blank." }, 400);
   if (body.inducted !== true) return json({ error: "Please confirm you've been inducted and understand the workplace rules." }, 400);
 
   const existing = await env.DB.prepare("SELECT id, first_name, surname, active FROM workers WHERE mobile = ?").bind(mobile).first<{ id: number; first_name: string; surname: string; active: number }>();
@@ -113,6 +116,7 @@ export async function registerWorker(env: Env, body: Record<string, unknown>): P
   const res = await env.DB.prepare(
     "INSERT INTO workers (first_name, surname, mobile, company, inducted_at, active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?) RETURNING id",
   ).bind(first, surname, mobile, company, now, now).first<{ id: number }>();
+  if (email) await saveWorkerEmail(env, res!.id, email);
   return json({ worker: { id: res!.id, first_name: first, surname, company, status: "not_arrived", arrived: "", finished: "" } });
 }
 
@@ -194,5 +198,6 @@ export async function finish(env: Env, body: Record<string, unknown>): Promise<R
     title: `Signed out at ${fmtTime(finishedIso)}`,
     message: finishMessage(worker.first_name, now),
     summary: `Today: ${fmtTime(shift.arrived_at)} – ${fmtTime(finishedIso)}, ${breakMins ? `${breakMins} min break` : "no break"} · ${fmtDuration(worked)} worked.`,
+    hours_email: emailEnabled(env) ? { email: await workerEmail(env, worker.id) } : undefined,
   });
 }

@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import { ADMIN_MAX_AGE, checkManagerCode, clearCookie, currentManager, hashCode, makeCookie, type Manager } from "./auth";
 import { fmtMobile, normaliseMobile } from "./kiosk";
+import { normaliseEmail, saveWorkerEmail } from "./hours-email";
 import { page } from "./pages";
 import { esc, loadWeek, renderWeek, sendSummary, weekCsv, weekLabel } from "./summary";
 import { addDays, bneDate, bneHHMM, bneToUtcMs, fmtDateAU, fmtDuration, fmtTime, isYmd, weekStart, workedMinutes } from "./time";
@@ -220,22 +221,23 @@ async function workersPage(env: Env, me: Manager, msg: string | null): Promise<R
   const { results } = await env.DB.prepare(
     `SELECT w.*, (SELECT MAX(work_date) FROM shifts s WHERE s.worker_id = w.id) AS last_seen
        FROM workers w ORDER BY w.active DESC, w.company COLLATE NOCASE, w.first_name COLLATE NOCASE`,
-  ).all<{ id: number; first_name: string; surname: string; mobile: string; company: string; inducted_at: string; active: number; last_seen: string | null }>();
+  ).all<{ id: number; first_name: string; surname: string; mobile: string; company: string; inducted_at: string; active: number; last_seen: string | null; email?: string | null }>();
   const today = bneDate();
-  const content = `<div class="bar"><h1>Workers</h1></div><div class="box"><table class="list"><tr><th>Name</th><th>Company</th><th>Mobile</th><th>Inducted</th><th>Last on site</th><th></th></tr>
-${results.map((w) => `<tr style="${w.active ? "" : "opacity:.5"}"><td><b>${esc(w.first_name)} ${esc(w.surname)}</b>${w.active ? "" : " <span class='muted'>(hidden from kiosk)</span>"}</td><td>${esc(w.company)}</td><td>${esc(fmtMobile(w.mobile))}</td><td>${fmtDateAU(bneDate(Date.parse(w.inducted_at)))}</td><td>${w.last_seen ? fmtDateAU(w.last_seen) : "—"}</td>
+  const content = `<div class="bar"><h1>Workers</h1></div><div class="box"><table class="list"><tr><th>Name</th><th>Company</th><th>Contact</th><th>Inducted</th><th>Last on site</th><th></th></tr>
+${results.map((w) => `<tr style="${w.active ? "" : "opacity:.5"}"><td><b>${esc(w.first_name)} ${esc(w.surname)}</b>${w.active ? "" : " <span class='muted'>(hidden from kiosk)</span>"}</td><td>${esc(w.company)}</td><td>${esc(fmtMobile(w.mobile))}${w.email ? `<br><span class="muted">${esc(w.email)}</span>` : ""}</td><td>${fmtDateAU(bneDate(Date.parse(w.inducted_at)))}</td><td>${w.last_seen ? fmtDateAU(w.last_seen) : "—"}</td>
 <td style="white-space:nowrap"><a class="btn sm ghost" href="/admin/workers/${w.id}">Edit</a> <a class="btn sm ghost" href="/admin/shift?worker=${w.id}&date=${today}">Add shift</a></td></tr>`).join("") || `<tr><td colspan="6" class="muted">No workers yet — they register themselves at the kiosk.</td></tr>`}
 </table></div>`;
   return shell(me, "Workers", content, msg ? { msg } : undefined);
 }
 
 async function workerPage(env: Env, me: Manager, id: number, error = ""): Promise<Response> {
-  const w = await env.DB.prepare("SELECT * FROM workers WHERE id = ?").bind(id).first<{ id: number; first_name: string; surname: string; mobile: string; company: string; active: number; inducted_at: string }>();
+  const w = await env.DB.prepare("SELECT * FROM workers WHERE id = ?").bind(id).first<{ id: number; first_name: string; surname: string; mobile: string; company: string; active: number; inducted_at: string; email?: string | null }>();
   if (!w) return redirect("/admin/workers");
   const content = `<div class="bar"><h1>${esc(w.first_name)} ${esc(w.surname)}</h1><a class="btn sm ghost" href="/admin/workers">← Workers</a></div>
 <div class="box" style="max-width:640px"><p class="muted" style="margin-top:0">Registered &amp; confirmed induction ${fmtDateAU(bneDate(Date.parse(w.inducted_at)))} ${fmtTime(w.inducted_at)}.</p>
 <form method="post"><div class="grid2"><div><label>First name</label><input type="text" name="first_name" value="${esc(w.first_name)}" required></div><div><label>Surname</label><input type="text" name="surname" value="${esc(w.surname)}" required></div>
-<div><label>Mobile</label><input type="tel" name="mobile" value="${esc(fmtMobile(w.mobile))}" required></div><div><label>Contract company</label><input type="text" name="company" value="${esc(w.company)}" required></div></div>
+<div><label>Mobile</label><input type="tel" name="mobile" value="${esc(fmtMobile(w.mobile))}" required></div><div><label>Contract company</label><input type="text" name="company" value="${esc(w.company)}" required></div>
+<div><label>Email <span class="muted">(optional — for "send me my hours")</span></label><input type="email" name="email" value="${esc(w.email ?? "")}"></div></div>
 <label class="check" style="font-weight:500"><input type="checkbox" name="active" value="1" ${w.active ? "checked" : ""} style="width:20px;height:20px"> Show on the kiosk (untick for people who no longer work here — their hours are kept)</label>
 <div class="err">${esc(error)}</div><button class="btn" style="margin-top:8px">Save</button></form></div>`;
   return shell(me, "Worker", content);
@@ -248,8 +250,12 @@ async function saveWorker(env: Env, me: Manager, id: number, form: FormData): Pr
   if (!mobile) return workerPage(env, me, id, "Please enter a valid Australian mobile.");
   const clash = await env.DB.prepare("SELECT id FROM workers WHERE mobile = ? AND id != ?").bind(mobile, id).first();
   if (clash) return workerPage(env, me, id, "Another worker already has that mobile number.");
+  const emailRaw = f("email");
+  const email = emailRaw ? normaliseEmail(emailRaw) : null;
+  if (emailRaw && !email) return workerPage(env, me, id, "That email address doesn't look right.");
   await env.DB.prepare("UPDATE workers SET first_name = ?, surname = ?, mobile = ?, company = ?, active = ? WHERE id = ?")
     .bind(f("first_name").slice(0, 40), f("surname").slice(0, 40), mobile, f("company").slice(0, 80), form.get("active") === "1" ? 1 : 0, id).run();
+  await saveWorkerEmail(env, id, email);
   return redirect(`/admin/workers?msg=${encodeURIComponent("Saved.")}`);
 }
 
